@@ -40,6 +40,8 @@ USE_NEGATIVE_BINOMIAL = True                  # s. Docstring oben; per Backtest 
 ODDS_WEIGHT = 0.5                             # 0 = nur Modell, 1 = nur Markt
 H2H_MIN_DUELLE = 3                            # ab wie vielen Duellen H2H ueberhaupt einfliesst
 H2H_MAX_DUELLE = 10                           # hoechstens die juengsten X Duelle beruecksichtigen
+FRUEHSAISON_MIN_GEWICHT = 0.35                 # Startgewicht laufender Saison bei 0 eigenen Spielen
+FRUEHSAISON_SPIELE_BIS_VOLL = 27               # ab hier zaehlt die laufende Saison normal (3 Spieltage)
 PUNKTE_ERGEBNIS = 5                           # Kicktipp-Punkte: exaktes Ergebnis (echte Regel: 2-3-5)
 PUNKTE_TORDIFFERENZ = 3                       # ... nur bei Sieg: richtige Tordifferenz
 PUNKTE_TENDENZ = 2                            # ... Sieger/Unentschieden richtig, sonst nichts
@@ -108,6 +110,7 @@ def get_finished_matches(seasons: list[int]) -> list[dict]:
                 "away": _team_name(team2),
                 "home_goals": int(hg),
                 "away_goals": int(ag),
+                "saison": season,
             })
     return all_matches
 
@@ -177,19 +180,36 @@ def _pmf(k, mean, dispersion):
     return nbinom.pmf(k, r, p)
 
 
-def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BINOMIAL):
+def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BINOMIAL,
+              aktuelle_saison=None, fruehsaison_daempfung=True):
     teams = sorted({m["home"] for m in matches} | {m["away"] for m in matches})
     idx = {t: i for i, t in enumerate(teams)}
     n = len(teams)
     if n < 2:
         raise ValueError("Zu wenig Teams in den Trainingsdaten.")
 
+    # Fruehsaison-Daempfung: Spiele der GERADE LAUFENDEN Saison zaehlen erst
+    # nach FRUEHSAISON_SPIELE_BIS_VOLL eigenen Spielen mit vollem Gewicht -
+    # davor gestuft von FRUEHSAISON_MIN_GEWICHT bis 1.0. Verhindert, dass ein
+    # einzelnes 0:3 oder ein einzelner 3:2-Ueberraschungssieg (z.B. eines
+    # Aufsteigers) das Rating unverhaeltnismaessig stark verschiebt, bevor
+    # genug Spiele fuer ein verlaessliches Bild vorliegen. Betrifft NUR die
+    # laufende Saison - die abgeschlossene Vorsaison zaehlt normal weiter.
+    saison_gewicht_faktor = 1.0
+    if fruehsaison_daempfung and aktuelle_saison is not None:
+        n_aktuelle = sum(1 for m in matches if m.get("saison") == aktuelle_saison)
+        reife = min(1.0, n_aktuelle / FRUEHSAISON_SPIELE_BIS_VOLL)
+        saison_gewicht_faktor = FRUEHSAISON_MIN_GEWICHT + (1 - FRUEHSAISON_MIN_GEWICHT) * reife
+
     now = datetime.now(timezone.utc)
     weights = []
     for m in matches:
         d = datetime.fromisoformat(m["date"].replace("Z", "+00:00"))
         days_ago = max((now - d).days, 0)
-        weights.append(0.5 ** (days_ago / half_life_days))
+        w = 0.5 ** (days_ago / half_life_days)
+        if fruehsaison_daempfung and aktuelle_saison is not None and m.get("saison") == aktuelle_saison:
+            w *= saison_gewicht_faktor
+        weights.append(w)
 
     n_base = 2 * n + 2
 
@@ -557,7 +577,7 @@ def main():
         print("Warnung: sehr wenig Trainingsdaten - Tipps werden ungenau sein.")
 
     print(f"Trainiere Modell (Negative Binomial={USE_NEGATIVE_BINOMIAL}) ...")
-    model = fit_model(matches)
+    model = fit_model(matches, aktuelle_saison=_aktuelle_saison)
     disp_str = f", Dispersion r={model['dispersion']:.1f}" if model["dispersion"] else ""
     print(f"Konvergiert: {model['converged']}, Heimvorteil={model['home_advantage']:.2f}{disp_str}")
 
