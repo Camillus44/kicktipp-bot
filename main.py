@@ -113,16 +113,34 @@ def get_finished_matches(seasons: list[int]) -> list[dict]:
 
 
 def get_upcoming_matches() -> list[dict]:
-    url = f"{BASE_URL_LIGA}/getmatchdata/{LEAGUE_SHORTCUT}"
-    resp = requests.get(url, timeout=20)
-    resp.raise_for_status()
-    matches = resp.json()
-    upcoming = [
+    """
+    Naechster noch nicht gespielter Spieltag der aktuellen Saison.
+
+    Nutzt bewusst NICHT den "ohne Saison"-Endpunkt von OpenLigaDB direkt -
+    der zeigt zwischen zwei Spieltagen (z.B. nach Spieltag 1, bevor
+    Spieltag 2 beginnt) manchmal noch den GERADE ABGESCHLOSSENEN Spieltag
+    statt des naechsten. Dann waere "upcoming" faelschlich leer, tipps/ und
+    docs/ wuerden nie angelegt, und der Commit-Schritt schlaegt fehl
+    ("pathspec did not match any files"). Stattdessen: ganze Saison laden,
+    selbst den naechsten Spieltag mit unfertigen Spielen bestimmen.
+    """
+    matches = get_matches_for_season(_aktuelle_saison)
+    unfinished = [
         m for m in matches
         if not _get(m, "matchIsFinished", "MatchIsFinished", default=False)
     ]
+    if not unfinished:
+        return []
+
+    def spieltag_of(m):
+        gruppe = _get(m, "group", "Group", default={})
+        return _get(gruppe, "groupOrderID", "GroupOrderID", default=999)
+
+    naechster_spieltag = min(spieltag_of(m) for m in unfinished)
+    naechste_spiele = [m for m in unfinished if spieltag_of(m) == naechster_spieltag]
+
     result = []
-    for m in upcoming:
+    for m in naechste_spiele:
         team1 = _get(m, "team1", "Team1", default={})
         team2 = _get(m, "team2", "Team2", default={})
         result.append({
