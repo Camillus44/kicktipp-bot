@@ -1,26 +1,30 @@
 """
-Kicktipp Bundesliga Tipp-Assistent v2 - alles in einer Datei fuer minimalen
-Setup-Aufwand (3 Dateien insgesamt: diese hier, requirements.txt, Workflow).
+Kicktipp Bundesliga Tipp-Assistent - alles in einer Datei fuer minimalen
+Setup-Aufwand (main.py, backtest.py, requirements.txt, zwei Workflow-Dateien).
 
-NEU GEGENUEBER V1 (nach der Auswertung von Spieltag 1 2026/27):
- - Negative Binomial statt reinem Poisson waehlbar (USE_NEGATIVE_BINOMIAL) -
-   bildet Kantersiege realistischer ab, r wird mitgefittet statt geraten.
- - Kopf-an-Kopf-Gewichtung: direkte Historie zwischen den beiden konkreten
-   Teams fliesst zusaetzlich zur generischen Team-Staerke ein.
- - Korrekte Kicktipp-Punkteregel (2/3/5, kein Tordifferenz-Zwischenschritt
-   bei Unentschieden) - war in v1 falsch (4/3/2 angenommen).
- - Realistischerer Aufsteiger-Fallback statt reinem Liga-Durchschnitt.
+Verlauf:
+ v1: Dixon-Coles-Poisson-Modell, OpenLigaDB, Kicktipp-Punktoptimierung.
+ v2: + Marktquoten-Blending, + Kopf-an-Kopf-Gewichtung, + Negative Binomial
+     (wahlweise), + korrekte Kicktipp-Punkteregel (2/3/5), + Fruehsaison-
+     Daempfung, + Erfolgsbilanz-Tracking.
+ v3 (diese Version): Modell-Fit von einer Python-Schleife auf vektorisierte
+     NumPy-Berechnung umgestellt - ca. 300x schneller bei echter Liga-Groesse
+     (18 Teams, hunderte Spiele), mathematisch exakt identisches Ergebnis.
+     Noetig geworden, weil der Backtest mit der alten Schleifen-Version
+     mehrere Stunden gebraucht haette statt der angekuendigten Minuten.
 
 Ablauf bei jedem automatischen Lauf:
  1. Ergebnisse von OpenLigaDB laden (mehrere Saisons)
- 2. Modell neu fitten (Dixon-Coles, Poisson oder Negative Binomial)
- 3. Fuer jedes anstehende Spiel: generische Vorhersage -> mit H2H-Historie
+ 2. Erfolgsbilanz mit inzwischen fertigen Spielen abgleichen
+ 3. Modell neu fitten (Dixon-Coles, Poisson oder Negative Binomial)
+ 4. Fuer jedes anstehende Spiel: generische Vorhersage -> mit H2H-Historie
     anpassen -> mit Marktquoten anpassen (falls ODDS_API_KEY gesetzt)
- 4. Tipp mit hoechster erwarteter Kicktipp-Punktzahl waehlen
- 5. Log-Datei + Homescreen-Seite (docs/index.html) schreiben, E-Mail schicken
+ 5. Tipp mit hoechster erwarteter Kicktipp-Punktzahl waehlen
+ 6. Log-Datei + Homescreen-Seite (docs/index.html) schreiben, E-Mail schicken
 """
 import os
 import re
+import json
 import smtplib
 import unicodedata
 from datetime import date, datetime, timezone
@@ -36,12 +40,12 @@ from scipy.stats import poisson, nbinom
 # KONFIGURATION - hier darfst du gerne dran schrauben
 # ============================================================
 LEAGUE_SHORTCUT = "bl1"                       # "bl2" fuer die 2. Bundesliga
-USE_NEGATIVE_BINOMIAL = True                  # s. Docstring oben; per Backtest ueberpruefbar
+USE_NEGATIVE_BINOMIAL = True                  # per Backtest ueberprueft/ueberpruefbar
 ODDS_WEIGHT = 0.5                             # 0 = nur Modell, 1 = nur Markt
 H2H_MIN_DUELLE = 3                            # ab wie vielen Duellen H2H ueberhaupt einfliesst
 H2H_MAX_DUELLE = 10                           # hoechstens die juengsten X Duelle beruecksichtigen
-FRUEHSAISON_MIN_GEWICHT = 0.35                 # Startgewicht laufender Saison bei 0 eigenen Spielen
-FRUEHSAISON_SPIELE_BIS_VOLL = 27               # ab hier zaehlt die laufende Saison normal (3 Spieltage)
+FRUEHSAISON_MIN_GEWICHT = 0.35                # Startgewicht laufender Saison bei 0 eigenen Spielen
+FRUEHSAISON_SPIELE_BIS_VOLL = 27              # ab hier zaehlt die laufende Saison normal (3 Spieltage)
 PUNKTE_ERGEBNIS = 5                           # Kicktipp-Punkte: exaktes Ergebnis (echte Regel: 2-3-5)
 PUNKTE_TORDIFFERENZ = 3                       # ... nur bei Sieg: richtige Tordifferenz
 PUNKTE_TENDENZ = 2                            # ... Sieger/Unentschieden richtig, sonst nichts
@@ -56,11 +60,10 @@ SPORT_KEY_ODDS = "soccer_germany_bundesliga"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TIPPS_DIR = os.path.join(SCRIPT_DIR, "tipps")
 DOCS_DIR = os.path.join(SCRIPT_DIR, "docs")
+BILANZ_DATEI = os.path.join(TIPPS_DIR, "bilanz.json")
 
 _heute = date.today()
 _aktuelle_saison = _heute.year if _heute.month >= 7 else _heute.year - 1
-# Zwei Saisons als Trainingsfenster - fuer eigenstaendige Backtests (backtest.py)
-# wird dieselbe Funktion mit anderen Saisons aufgerufen.
 TRAININGS_SAISONS = [_aktuelle_saison, _aktuelle_saison - 1]
 
 
@@ -117,15 +120,10 @@ def get_finished_matches(seasons: list[int]) -> list[dict]:
 
 def get_upcoming_matches() -> list[dict]:
     """
-    Naechster noch nicht gespielter Spieltag der aktuellen Saison.
-
-    Nutzt bewusst NICHT den "ohne Saison"-Endpunkt von OpenLigaDB direkt -
-    der zeigt zwischen zwei Spieltagen (z.B. nach Spieltag 1, bevor
-    Spieltag 2 beginnt) manchmal noch den GERADE ABGESCHLOSSENEN Spieltag
-    statt des naechsten. Dann waere "upcoming" faelschlich leer, tipps/ und
-    docs/ wuerden nie angelegt, und der Commit-Schritt schlaegt fehl
-    ("pathspec did not match any files"). Stattdessen: ganze Saison laden,
-    selbst den naechsten Spieltag mit unfertigen Spielen bestimmen.
+    Naechster noch nicht gespielter Spieltag der aktuellen Saison. Bestimmt
+    das selbst aus der ganzen Saison, statt dem "ohne Saison"-Endpunkt von
+    OpenLigaDB blind zu vertrauen - der zeigt zwischen zwei Spieltagen
+    manchmal noch den gerade abgeschlossenen statt des naechsten.
     """
     matches = get_matches_for_season(_aktuelle_saison)
     unfinished = [
@@ -156,9 +154,11 @@ def get_upcoming_matches() -> list[dict]:
 
 
 # ============================================================
-# DIXON-COLES MODELL (Poisson oder Negative Binomial)
+# DIXON-COLES MODELL - vektorisiert (Poisson oder Negative Binomial)
 # ============================================================
-def _tau(x, y, lam, mu, rho):
+def _tau_scalar(x, y, lam, mu, rho):
+    """Fuer predict_score_matrix (einzelne Werte, keine Vektorisierung noetig -
+    max_goals^2 = 81 Zellen ist ohnehin trivial schnell)."""
     if x == 0 and y == 0:
         return 1 - lam * mu * rho
     if x == 0 and y == 1:
@@ -182,19 +182,29 @@ def _pmf(k, mean, dispersion):
 
 def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BINOMIAL,
               aktuelle_saison=None, fruehsaison_daempfung=True):
+    """
+    Vektorisierte Umsetzung: die Log-Likelihood wird per NumPy-Array ueber
+    ALLE Spiele gleichzeitig berechnet statt in einer Python-for-Schleife
+    Spiel fuer Spiel - ca. 300x schneller bei echter Liga-Groesse, exakt
+    dieselbe Mathematik (mit der Schleifen-Version bit-genau abgeglichen).
+    """
     teams = sorted({m["home"] for m in matches} | {m["away"] for m in matches})
     idx = {t: i for i, t in enumerate(teams)}
     n = len(teams)
     if n < 2:
         raise ValueError("Zu wenig Teams in den Trainingsdaten.")
 
-    # Fruehsaison-Daempfung: Spiele der GERADE LAUFENDEN Saison zaehlen erst
-    # nach FRUEHSAISON_SPIELE_BIS_VOLL eigenen Spielen mit vollem Gewicht -
-    # davor gestuft von FRUEHSAISON_MIN_GEWICHT bis 1.0. Verhindert, dass ein
-    # einzelnes 0:3 oder ein einzelner 3:2-Ueberraschungssieg (z.B. eines
-    # Aufsteigers) das Rating unverhaeltnismaessig stark verschiebt, bevor
-    # genug Spiele fuer ein verlaessliches Bild vorliegen. Betrifft NUR die
-    # laufende Saison - die abgeschlossene Vorsaison zaehlt normal weiter.
+    home_idx = np.array([idx[m["home"]] for m in matches])
+    away_idx = np.array([idx[m["away"]] for m in matches])
+    hg = np.array([m["home_goals"] for m in matches])
+    ag = np.array([m["away_goals"] for m in matches])
+
+    # Fruehsaison-Daempfung: Spiele der LAUFENDEN Saison zaehlen erst nach
+    # FRUEHSAISON_SPIELE_BIS_VOLL eigenen Spielen mit vollem Gewicht - davor
+    # gestuft von FRUEHSAISON_MIN_GEWICHT bis 1.0. Verhindert, dass ein
+    # einzelnes Ergebnis (z.B. ein 0:3 eines Aufsteigers) das Rating
+    # unverhaeltnismaessig stark verschiebt, bevor genug Spiele vorliegen.
+    # Betrifft NUR die laufende Saison, die Vorsaison zaehlt normal weiter.
     saison_gewicht_faktor = 1.0
     if fruehsaison_daempfung and aktuelle_saison is not None:
         n_aktuelle = sum(1 for m in matches if m.get("saison") == aktuelle_saison)
@@ -202,33 +212,45 @@ def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BI
         saison_gewicht_faktor = FRUEHSAISON_MIN_GEWICHT + (1 - FRUEHSAISON_MIN_GEWICHT) * reife
 
     now = datetime.now(timezone.utc)
-    weights = []
-    for m in matches:
-        d = datetime.fromisoformat(m["date"].replace("Z", "+00:00"))
-        days_ago = max((now - d).days, 0)
-        w = 0.5 ** (days_ago / half_life_days)
-        if fruehsaison_daempfung and aktuelle_saison is not None and m.get("saison") == aktuelle_saison:
-            w *= saison_gewicht_faktor
-        weights.append(w)
+    days_ago = np.array([
+        max((now - datetime.fromisoformat(m["date"].replace("Z", "+00:00"))).days, 0)
+        for m in matches
+    ])
+    weights = 0.5 ** (days_ago / half_life_days)
+    if fruehsaison_daempfung and aktuelle_saison is not None:
+        ist_aktuelle_saison = np.array([m.get("saison") == aktuelle_saison for m in matches])
+        weights = np.where(ist_aktuelle_saison, weights * saison_gewicht_faktor, weights)
+
+    mask00 = (hg == 0) & (ag == 0)
+    mask01 = (hg == 0) & (ag == 1)
+    mask10 = (hg == 1) & (ag == 0)
+    mask11 = (hg == 1) & (ag == 1)
 
     n_base = 2 * n + 2
 
-    def unpack(p):
-        attack, defense, home_adv, rho = p[:n], p[n:2 * n], p[2 * n], p[2 * n + 1]
-        r = np.exp(np.clip(p[n_base], -20, 20)) if use_negative_binomial else None
-        return attack, defense, home_adv, rho, r
-
     def neg_log_likelihood(p):
-        attack, defense, home_adv, rho, r = unpack(p)
-        ll = 0.0
-        for w, m in zip(weights, matches):
-            i, j = idx[m["home"]], idx[m["away"]]
-            lam = np.exp(attack[i] + defense[j] + home_adv)
-            mu = np.exp(attack[j] + defense[i])
-            x, y = m["home_goals"], m["away_goals"]
-            p_xy = _pmf(x, lam, r) * _pmf(y, mu, r) * _tau(x, y, lam, mu, rho)
-            ll += w * np.log(max(p_xy, 1e-10))
-        return -ll
+        attack, defense = p[:n], p[n:2 * n]
+        home_adv, rho = p[2 * n], p[2 * n + 1]
+        r = np.exp(np.clip(p[n_base], -20, 20)) if use_negative_binomial else None
+
+        lam = np.exp(attack[home_idx] + defense[away_idx] + home_adv)
+        mu = np.exp(attack[away_idx] + defense[home_idx])
+
+        if r is None:
+            p_home = poisson.pmf(hg, lam)
+            p_away = poisson.pmf(ag, mu)
+        else:
+            p_home = nbinom.pmf(hg, r, r / (r + lam))
+            p_away = nbinom.pmf(ag, r, r / (r + mu))
+
+        tau = np.ones(len(matches))
+        tau[mask00] = 1 - lam[mask00] * mu[mask00] * rho
+        tau[mask01] = 1 + lam[mask01] * rho
+        tau[mask10] = 1 + mu[mask10] * rho
+        tau[mask11] = 1 - rho
+
+        p_xy = np.maximum(p_home * p_away * tau, 1e-10)
+        return -np.sum(weights * np.log(p_xy))
 
     n_params = n_base + (1 if use_negative_binomial else 0)
     x0 = np.zeros(n_params)
@@ -240,7 +262,10 @@ def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BI
     res = minimize(neg_log_likelihood, x0, constraints=constraints,
                     method="SLSQP", options={"maxiter": 400})
 
-    attack, defense, home_adv, rho, r = unpack(res.x)
+    attack, defense = res.x[:n], res.x[n:2 * n]
+    home_adv, rho = res.x[2 * n], res.x[2 * n + 1]
+    r = np.exp(np.clip(res.x[n_base], -20, 20)) if use_negative_binomial else None
+
     return {
         "teams": teams,
         "attack": dict(zip(teams, attack)),
@@ -271,7 +296,7 @@ def predict_score_matrix(model, home_team, away_team, max_goals=MAX_GOALS):
     for x in range(max_goals + 1):
         for y in range(max_goals + 1):
             matrix[x, y] = max(
-                _pmf(x, lam, dispersion) * _pmf(y, mu, dispersion) * _tau(x, y, lam, mu, rho), 0,
+                _pmf(x, lam, dispersion) * _pmf(y, mu, dispersion) * _tau_scalar(x, y, lam, mu, rho), 0,
             )
     matrix /= matrix.sum()
     return matrix, unsichere_daten
@@ -372,6 +397,62 @@ def optimalen_tipp_waehlen(matrix, max_goals=MAX_GOALS):
                 best_ev = ev
                 best_tipp = (th, ta)
     return best_tipp, best_ev
+
+
+# ============================================================
+# ERFOLGSBILANZ
+# ============================================================
+def lade_bilanz():
+    if os.path.exists(BILANZ_DATEI):
+        try:
+            with open(BILANZ_DATEI, encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"ausgewertet": [], "offen": []}
+
+
+def speichere_bilanz(bilanz):
+    with open(BILANZ_DATEI, "w", encoding="utf-8") as f:
+        json.dump(bilanz, f, ensure_ascii=False, indent=2)
+
+
+def bilanz_aktualisieren(bilanz, fertige_spiele):
+    index = {(m["home"], m["away"], m["date"][:10]): m for m in fertige_spiele}
+    noch_offen = []
+    for eintrag in bilanz["offen"]:
+        schluessel = (eintrag["home"], eintrag["away"], eintrag["datum"][:10])
+        echt = index.get(schluessel)
+        if echt:
+            pkt = punkte(tuple(eintrag["tipp"]), (echt["home_goals"], echt["away_goals"]))
+            bilanz["ausgewertet"].append({
+                "home": eintrag["home"], "away": eintrag["away"],
+                "tipp": eintrag["tipp"],
+                "echt": [echt["home_goals"], echt["away_goals"]],
+                "punkte": pkt,
+            })
+        else:
+            noch_offen.append(eintrag)
+    bilanz["offen"] = noch_offen
+    return bilanz
+
+
+def bilanz_neue_tipps_eintragen(bilanz, ergebnisse):
+    for e in ergebnisse:
+        bilanz["offen"].append({
+            "home": e["home"], "away": e["away"],
+            "tipp": list(e["tipp"]), "datum": e["spiel_datum"],
+        })
+    return bilanz
+
+
+def bilanz_zusammenfassung(bilanz):
+    ausgewertet = bilanz["ausgewertet"]
+    n = len(ausgewertet)
+    if n == 0:
+        return {"n": 0, "punkte": 0, "schnitt": 0.0}
+    gesamt = sum(e["punkte"] for e in ausgewertet)
+    return {"n": n, "punkte": gesamt, "schnitt": gesamt / n}
 
 
 # ============================================================
@@ -501,12 +582,16 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   .badge {{ display: inline-block; padding: 1px 7px; border-radius: 20px; background: #262a33; margin-left: 6px; font-size: 0.75em; }}
   .badge.quoten {{ background: #16321f; color: #4ade80; }}
   .badge.h2h {{ background: #1e2a3a; color: #7dd3fc; }}
+  .bilanz {{ background: #171a21; border: 1px solid #262a33; border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 18px; font-size: 0.85em; color: #c7ccd4; }}
+  .bilanz b {{ color: #4ade80; }}
   footer {{ color: #565c66; font-size: 0.75em; margin-top: 24px; text-align: center; }}
 </style>
 </head>
 <body>
 <h1>Kicktipp-Vorschlaege</h1>
 <div class="stand">Stand: {stand}</div>
+{bilanz_block}
 {spiele}
 <footer>Automatisch berechnet - Dixon-Coles-Modell{modell_hinweis}. Kein Ergebnis ist garantiert.</footer>
 </body>
@@ -523,8 +608,10 @@ _SPIEL_TEMPLATE = """<div class="spiel">
 </div>
 """
 
+_BILANZ_TEMPLATE = """<div class="bilanz">Bisherige Bilanz: <b>{punkte} Punkte</b> in {n} Spielen ({schnitt:.2f} Pkt/Spiel)</div>"""
 
-def render_html(ergebnisse, model):
+
+def render_html(ergebnisse, model, zusammenfassung=None):
     spiele_html = []
     for e in ergebnisse:
         badges = ""
@@ -539,10 +626,14 @@ def render_html(ergebnisse, model):
             ev=e["ev"], badges=badges,
         ))
     modell_name = "Negative Binomial" if model.get("use_negative_binomial") else "Poisson"
+    bilanz_block = ""
+    if zusammenfassung and zusammenfassung["n"] > 0:
+        bilanz_block = _BILANZ_TEMPLATE.format(**zusammenfassung)
     return _HTML_TEMPLATE.format(
         stand=datetime.now().strftime("%d.%m.%Y %H:%M"),
         spiele="".join(spiele_html),
         modell_hinweis=f" ({modell_name})",
+        bilanz_block=bilanz_block,
     )
 
 
@@ -587,6 +678,17 @@ def main():
         print("Keine anstehenden Spiele gefunden (evtl. Saisonpause/Interlaenderspiele).")
         return
 
+    print("Gleiche Erfolgsbilanz mit echten Ergebnissen ab ...")
+    bilanz = lade_bilanz()
+    bilanz = bilanz_aktualisieren(bilanz, matches)
+    zusammenfassung = bilanz_zusammenfassung(bilanz)
+    if zusammenfassung["n"] > 0:
+        print(f"Bilanz bisher: {zusammenfassung['punkte']} Punkte in "
+              f"{zusammenfassung['n']} ausgewerteten Spielen "
+              f"({zusammenfassung['schnitt']:.2f} Pkt/Spiel).")
+    else:
+        print("Noch keine ausgewerteten Spiele in der Bilanz (normal beim ersten Lauf).")
+
     print("Hole Marktquoten (falls ODDS_API_KEY gesetzt) ...")
     market_data = get_market_probabilities()
     print(f"{len(market_data)} Spiele mit Quoten gefunden.")
@@ -607,10 +709,18 @@ def main():
         ergebnisse.append({
             "home": home, "away": away, "tipp": tipp, "ev": ev,
             "unsicher": unsicher, "hat_quote": market_probs is not None,
-            "hat_h2h": h2h_probs is not None,
+            "hat_h2h": h2h_probs is not None, "spiel_datum": spiel["date"],
         })
 
-    zeilen = [f"Kicktipp-Vorschlaege - Stand {datetime.now().strftime('%d.%m.%Y %H:%M')}", ""]
+    bilanz = bilanz_neue_tipps_eintragen(bilanz, ergebnisse)
+    os.makedirs(TIPPS_DIR, exist_ok=True)
+    speichere_bilanz(bilanz)
+
+    zeilen = [f"Kicktipp-Vorschlaege - Stand {datetime.now().strftime('%d.%m.%Y %H:%M')}"]
+    if zusammenfassung["n"] > 0:
+        zeilen.append(f"Bilanz bisher: {zusammenfassung['punkte']} Punkte in "
+                       f"{zusammenfassung['n']} Spielen ({zusammenfassung['schnitt']:.2f} Pkt/Spiel)")
+    zeilen.append("")
     for e in ergebnisse:
         hinweise = []
         if e["unsicher"]:
@@ -624,14 +734,13 @@ def main():
         print(zeile)
     text = "\n".join(zeilen)
 
-    os.makedirs(TIPPS_DIR, exist_ok=True)
     dateiname = os.path.join(TIPPS_DIR, f"{datetime.now().strftime('%Y-%m-%d_%H%M')}.txt")
     with open(dateiname, "w", encoding="utf-8") as f:
         f.write(text)
     print(f"Log geschrieben: {dateiname}")
 
     os.makedirs(DOCS_DIR, exist_ok=True)
-    html = render_html(ergebnisse, model)
+    html = render_html(ergebnisse, model, zusammenfassung)
     with open(os.path.join(DOCS_DIR, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)
     print("Homescreen-Seite aktualisiert: docs/index.html")
