@@ -40,7 +40,8 @@ from scipy.stats import poisson, nbinom
 # KONFIGURATION - hier darfst du gerne dran schrauben
 # ============================================================
 LEAGUE_SHORTCUT = "bl1"                       # "bl2" fuer die 2. Bundesliga
-USE_NEGATIVE_BINOMIAL = True                  # per Backtest ueberprueft/ueberpruefbar
+USE_NEGATIVE_BINOMIAL = False                 # per Backtest widerlegt: exakt gleiche Leistung wie Poisson,
+                                               # aber ein Freiheitsgrad und Overflow-Risiko mehr - deshalb aus
 ODDS_WEIGHT = 0.5                             # 0 = nur Modell, 1 = nur Markt
 H2H_MIN_DUELLE = 3                            # ab wie vielen Duellen H2H ueberhaupt einfliesst
 H2H_MAX_DUELLE = 10                           # hoechstens die juengsten X Duelle beruecksichtigen
@@ -233,8 +234,8 @@ def fit_model(matches, half_life_days=400, use_negative_binomial=USE_NEGATIVE_BI
         home_adv, rho = p[2 * n], p[2 * n + 1]
         r = np.exp(np.clip(p[n_base], -20, 20)) if use_negative_binomial else None
 
-        lam = np.exp(attack[home_idx] + defense[away_idx] + home_adv)
-        mu = np.exp(attack[away_idx] + defense[home_idx])
+        lam = np.exp(np.clip(attack[home_idx] + defense[away_idx] + home_adv, -20, 20))
+        mu = np.exp(np.clip(attack[away_idx] + defense[home_idx], -20, 20))
 
         if r is None:
             p_home = poisson.pmf(hg, lam)
@@ -289,8 +290,8 @@ def predict_score_matrix(model, home_team, away_team, max_goals=MAX_GOALS):
     d_away = defense.get(away_team, AUFSTEIGER_DEFENSE_DEFAULT)
     unsichere_daten = home_team not in attack or away_team not in attack
 
-    lam = np.exp(a_home + d_away + home_adv)
-    mu = np.exp(a_away + d_home)
+    lam = np.exp(np.clip(a_home + d_away + home_adv, -20, 20))
+    mu = np.exp(np.clip(a_away + d_home, -20, 20))
 
     matrix = np.zeros((max_goals + 1, max_goals + 1))
     for x in range(max_goals + 1):
