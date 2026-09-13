@@ -123,6 +123,63 @@ def backtest_alle_konfigurationen(alle_spiele):
     return ergebnisse
 
 
+def aktuelle_saison_im_detail(vorsaison_matches, aktuelle_saison_matches, aktuelle_saison,
+                               use_negative_binomial, use_h2h):
+    """
+    Rechnet Spieltag fuer Spieltag der LAUFENDEN Saison nach, was das HEUTIGE
+    main.py (mit seiner aktuellen Konfiguration) getippt haette - und
+    vergleicht mit dem tatsaechlichen Ergebnis. Anders als der grosse
+    Vergleich oben (der 3 abgeschlossene Saisons aggregiert) hier bewusst
+    Spiel fuer Spiel sichtbar, zum direkten Abgleich mit dem, was tatsaechlich
+    bei Kicktipp eingetragen wurde.
+    """
+    spieltage = sorted({m["spieltag"] for m in aktuelle_saison_matches})
+    gesamt_punkte, gesamt_n = 0, 0
+
+    print()
+    print("=" * 65)
+    print(f"DETAIL: laufende Saison {aktuelle_saison} mit dem HEUTIGEN Modell "
+          f"(NB={use_negative_binomial}, H2H={use_h2h})")
+    print("=" * 65)
+
+    for spieltag in spieltage:
+        training = vorsaison_matches + [m for m in aktuelle_saison_matches if m["spieltag"] < spieltag]
+        test = [m for m in aktuelle_saison_matches if m["spieltag"] == spieltag]
+        if len(training) < MIN_TRAININGSSPIELE or not test:
+            continue
+
+        try:
+            model = fit_model(training, use_negative_binomial=use_negative_binomial,
+                               aktuelle_saison=aktuelle_saison)
+        except Exception as e:
+            print(f"Spieltag {spieltag}: Fit fehlgeschlagen ({e}) - uebersprungen")
+            continue
+
+        print(f"\n-- Spieltag {spieltag} --")
+        spieltag_punkte = 0
+        for spiel in test:
+            echt = (spiel["home_goals"], spiel["away_goals"])
+            matrix, _ = predict_score_matrix(model, spiel["home"], spiel["away"])
+            if use_h2h:
+                h2h_probs, n_h2h = compute_h2h_probs(training, spiel["home"], spiel["away"])
+                if h2h_probs:
+                    matrix = blend_probabilities(matrix, h2h_probs, h2h_gewicht(n_h2h))
+            tipp, _ = optimalen_tipp_waehlen(matrix)
+            pkt = punkte(tipp, echt)
+            spieltag_punkte += pkt
+            gesamt_punkte += pkt
+            gesamt_n += 1
+            print(f"  {spiel['home']:28s} {tipp[0]}:{tipp[1]}  (echt {echt[0]}:{echt[1]}) "
+                  f"{spiel['away']:28s} -> {pkt} Pkt")
+        print(f"  Spieltag {spieltag} gesamt: {spieltag_punkte} Punkte")
+
+    if gesamt_n:
+        print(f"\nGESAMT bereits gespielte Spieltage mit heutigem Modell: "
+              f"{gesamt_punkte} Punkte in {gesamt_n} Spielen "
+              f"({gesamt_punkte/gesamt_n:.2f} Pkt/Spiel)")
+    return gesamt_punkte, gesamt_n
+
+
 def main():
     print(f"Lade Spiele aus Saisons {SAISONS} von OpenLigaDB ...")
     alle_spiele = lade_alle_spiele_mit_spieltag(SAISONS)
@@ -161,6 +218,22 @@ def main():
     else:
         print("Kein Modell schlaegt v1 klar im Backtest - v1-Einstellungen "
               "beibehalten waere ebenfalls vertretbar.")
+
+    # Zusaetzlich: Spiel fuer Spiel nachrechnen, was das HEUTIGE main.py
+    # (aktuelle Konfiguration) bei den schon gespielten Spieltagen DIESER
+    # Saison getippt haette - zum direkten Abgleich mit dem, was tatsaechlich
+    # bei Kicktipp eingetragen wurde.
+    from datetime import date
+    from main import USE_NEGATIVE_BINOMIAL
+    heute = date.today()
+    aktuelle_saison = heute.year if heute.month >= 7 else heute.year - 1
+    vorsaison_spiele = lade_alle_spiele_mit_spieltag([aktuelle_saison - 1])
+    laufende_spiele = lade_alle_spiele_mit_spieltag([aktuelle_saison])
+    if laufende_spiele:
+        aktuelle_saison_im_detail(vorsaison_spiele, laufende_spiele, aktuelle_saison,
+                                   use_negative_binomial=USE_NEGATIVE_BINOMIAL, use_h2h=True)
+    else:
+        print(f"\nNoch keine gespielten Spieltage in Saison {aktuelle_saison} gefunden.")
 
 
 if __name__ == "__main__":
