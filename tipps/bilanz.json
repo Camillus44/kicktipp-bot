@@ -81,6 +81,87 @@
         1
       ],
       "datum": "2026-09-20T17:30:00Z"
+    },
+    {
+      "home": "FC Bayern München",
+      "away": "1. FC Union Berlin",
+      "tipp": [
+        4,
+        0
+      ],
+      "datum": "2026-09-18T18:30:00Z"
+    },
+    {
+      "home": "Eintracht Frankfurt",
+      "away": "SC Freiburg",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-09-19T13:30:00Z"
+    },
+    {
+      "home": "Borussia Mönchengladbach",
+      "away": "1. FSV Mainz 05",
+      "tipp": [
+        0,
+        1
+      ],
+      "datum": "2026-09-19T13:30:00Z"
+    },
+    {
+      "home": "Hamburger SV",
+      "away": "1. FC Köln",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-09-19T13:30:00Z"
+    },
+    {
+      "home": "SV Werder Bremen",
+      "away": "FC Augsburg",
+      "tipp": [
+        1,
+        0
+      ],
+      "datum": "2026-09-19T13:30:00Z"
+    },
+    {
+      "home": "VfB Stuttgart",
+      "away": "Borussia Dortmund",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-09-19T16:30:00Z"
+    },
+    {
+      "home": "Bayer 04 Leverkusen",
+      "away": "RB Leipzig",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-09-20T13:30:00Z"
+    },
+    {
+      "home": "FC Schalke 04",
+      "away": "SV 07 Elversberg",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-09-20T15:30:00Z"
+    },
+    {
+      "home": "SC Paderborn 07",
+      "away": "TSG Hoffenheim",
+      "tipp": [
+        0,
+        1
+      ],
+      "datum": "2026-09-20T17:30:00Z"
     }
   ]
 }
