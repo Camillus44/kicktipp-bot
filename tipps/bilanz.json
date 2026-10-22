@@ -584,9 +584,7 @@
         1
       ],
       "punkte": 3
-    }
-  ],
-  "offen": [
+    },
     {
       "home": "Eintracht Frankfurt",
       "away": "1. FC Köln",
@@ -594,7 +592,11 @@
         2,
         1
       ],
-      "datum": "2026-10-16T18:30:00Z"
+      "echt": [
+        1,
+        0
+      ],
+      "punkte": 3
     },
     {
       "home": "1. FC Union Berlin",
@@ -603,7 +605,11 @@
         0,
         1
       ],
-      "datum": "2026-10-17T13:30:00Z"
+      "echt": [
+        0,
+        0
+      ],
+      "punkte": 0
     },
     {
       "home": "Hamburger SV",
@@ -612,7 +618,11 @@
         1,
         2
       ],
-      "datum": "2026-10-17T13:30:00Z"
+      "echt": [
+        1,
+        0
+      ],
+      "punkte": 0
     },
     {
       "home": "SV Werder Bremen",
@@ -621,7 +631,11 @@
         1,
         0
       ],
-      "datum": "2026-10-17T13:30:00Z"
+      "echt": [
+        2,
+        2
+      ],
+      "punkte": 0
     },
     {
       "home": "FC Schalke 04",
@@ -630,7 +644,11 @@
         0,
         1
       ],
-      "datum": "2026-10-17T13:30:00Z"
+      "echt": [
+        0,
+        1
+      ],
+      "punkte": 5
     },
     {
       "home": "SV 07 Elversberg",
@@ -639,7 +657,11 @@
         2,
         1
       ],
-      "datum": "2026-10-17T13:30:00Z"
+      "echt": [
+        4,
+        3
+      ],
+      "punkte": 3
     },
     {
       "home": "FC Bayern München",
@@ -648,7 +670,11 @@
         3,
         1
       ],
-      "datum": "2026-10-17T16:30:00Z"
+      "echt": [
+        6,
+        1
+      ],
+      "punkte": 2
     },
     {
       "home": "Bayer 04 Leverkusen",
@@ -657,7 +683,11 @@
         2,
         1
       ],
-      "datum": "2026-10-18T13:30:00Z"
+      "echt": [
+        2,
+        1
+      ],
+      "punkte": 5
     },
     {
       "home": "Borussia Mönchengladbach",
@@ -666,7 +696,94 @@
         1,
         2
       ],
-      "datum": "2026-10-18T15:30:00Z"
+      "echt": [
+        1,
+        2
+      ],
+      "punkte": 5
+    }
+  ],
+  "offen": [
+    {
+      "home": "VfB Stuttgart",
+      "away": "Borussia Mönchengladbach",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-10-23T18:30:00Z"
+    },
+    {
+      "home": "RB Leipzig",
+      "away": "SV 07 Elversberg",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-10-24T13:30:00Z"
+    },
+    {
+      "home": "FC Augsburg",
+      "away": "1. FC Union Berlin",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-10-24T13:30:00Z"
+    },
+    {
+      "home": "1. FSV Mainz 05",
+      "away": "SV Werder Bremen",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-10-24T13:30:00Z"
+    },
+    {
+      "home": "1. FC Köln",
+      "away": "FC Schalke 04",
+      "tipp": [
+        1,
+        0
+      ],
+      "datum": "2026-10-24T13:30:00Z"
+    },
+    {
+      "home": "SC Paderborn 07",
+      "away": "Hamburger SV",
+      "tipp": [
+        1,
+        0
+      ],
+      "datum": "2026-10-24T13:30:00Z"
+    },
+    {
+      "home": "Borussia Dortmund",
+      "away": "Eintracht Frankfurt",
+      "tipp": [
+        2,
+        0
+      ],
+      "datum": "2026-10-24T16:30:00Z"
+    },
+    {
+      "home": "TSG Hoffenheim",
+      "away": "Bayer 04 Leverkusen",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-10-25T14:30:00Z"
+    },
+    {
+      "home": "SC Freiburg",
+      "away": "FC Bayern München",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-10-25T16:30:00Z"
     }
   ]
 }
