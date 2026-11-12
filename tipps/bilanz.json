@@ -935,170 +935,323 @@
         1
       ],
       "punkte": 2
+    },
+    {
+      "home": "Hamburger SV",
+      "away": "Borussia Mönchengladbach",
+      "tipp": [
+        1,
+        0
+      ],
+      "echt": [
+        3,
+        1
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "Borussia Dortmund",
+      "away": "SV 07 Elversberg",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        2,
+        1
+      ],
+      "punkte": 5
+    },
+    {
+      "home": "RB Leipzig",
+      "away": "FC Augsburg",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        5,
+        2
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "1. FSV Mainz 05",
+      "away": "FC Bayern München",
+      "tipp": [
+        1,
+        3
+      ],
+      "echt": [
+        1,
+        2
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "SC Paderborn 07",
+      "away": "Eintracht Frankfurt",
+      "tipp": [
+        0,
+        1
+      ],
+      "echt": [
+        2,
+        2
+      ],
+      "punkte": 0
+    },
+    {
+      "home": "VfB Stuttgart",
+      "away": "SV Werder Bremen",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        1,
+        0
+      ],
+      "punkte": 3
+    },
+    {
+      "home": "1. FC Köln",
+      "away": "Bayer 04 Leverkusen",
+      "tipp": [
+        1,
+        2
+      ],
+      "echt": [
+        1,
+        2
+      ],
+      "punkte": 5
+    },
+    {
+      "home": "SC Freiburg",
+      "away": "1. FC Union Berlin",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        2,
+        0
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "TSG Hoffenheim",
+      "away": "FC Schalke 04",
+      "tipp": [
+        1,
+        0
+      ],
+      "echt": [
+        2,
+        1
+      ],
+      "punkte": 3
+    },
+    {
+      "home": "Hamburger SV",
+      "away": "Borussia Mönchengladbach",
+      "tipp": [
+        1,
+        0
+      ],
+      "echt": [
+        3,
+        1
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "Borussia Dortmund",
+      "away": "SV 07 Elversberg",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        2,
+        1
+      ],
+      "punkte": 5
+    },
+    {
+      "home": "RB Leipzig",
+      "away": "FC Augsburg",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        5,
+        2
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "1. FSV Mainz 05",
+      "away": "FC Bayern München",
+      "tipp": [
+        1,
+        3
+      ],
+      "echt": [
+        1,
+        2
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "SC Paderborn 07",
+      "away": "Eintracht Frankfurt",
+      "tipp": [
+        0,
+        1
+      ],
+      "echt": [
+        2,
+        2
+      ],
+      "punkte": 0
+    },
+    {
+      "home": "VfB Stuttgart",
+      "away": "SV Werder Bremen",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        1,
+        0
+      ],
+      "punkte": 3
+    },
+    {
+      "home": "1. FC Köln",
+      "away": "Bayer 04 Leverkusen",
+      "tipp": [
+        1,
+        2
+      ],
+      "echt": [
+        1,
+        2
+      ],
+      "punkte": 5
+    },
+    {
+      "home": "SC Freiburg",
+      "away": "1. FC Union Berlin",
+      "tipp": [
+        2,
+        1
+      ],
+      "echt": [
+        2,
+        0
+      ],
+      "punkte": 2
+    },
+    {
+      "home": "TSG Hoffenheim",
+      "away": "FC Schalke 04",
+      "tipp": [
+        1,
+        0
+      ],
+      "echt": [
+        2,
+        1
+      ],
+      "punkte": 3
     }
   ],
   "offen": [
     {
-      "home": "Hamburger SV",
-      "away": "Borussia Mönchengladbach",
+      "home": "FC Bayern München",
+      "away": "1. FC Köln",
+      "tipp": [
+        4,
+        0
+      ],
+      "datum": "2026-11-20T19:30:00Z"
+    },
+    {
+      "home": "Bayer 04 Leverkusen",
+      "away": "SC Paderborn 07",
       "tipp": [
         1,
         0
       ],
-      "datum": "2026-11-06T19:30:00Z"
+      "datum": "2026-11-21T14:30:00Z"
     },
     {
-      "home": "Borussia Dortmund",
-      "away": "SV 07 Elversberg",
+      "home": "Eintracht Frankfurt",
+      "away": "TSG Hoffenheim",
       "tipp": [
         2,
         1
       ],
-      "datum": "2026-11-07T14:30:00Z"
+      "datum": "2026-11-21T14:30:00Z"
     },
     {
-      "home": "RB Leipzig",
-      "away": "FC Augsburg",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "1. FSV Mainz 05",
-      "away": "FC Bayern München",
-      "tipp": [
-        1,
-        3
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "SC Paderborn 07",
-      "away": "Eintracht Frankfurt",
-      "tipp": [
-        0,
-        1
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "VfB Stuttgart",
-      "away": "SV Werder Bremen",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-07T17:30:00Z"
-    },
-    {
-      "home": "1. FC Köln",
-      "away": "Bayer 04 Leverkusen",
+      "home": "1. FC Union Berlin",
+      "away": "RB Leipzig",
       "tipp": [
         1,
         2
       ],
-      "datum": "2026-11-08T14:30:00Z"
+      "datum": "2026-11-21T14:30:00Z"
     },
     {
-      "home": "SC Freiburg",
-      "away": "1. FC Union Berlin",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-08T16:30:00Z"
-    },
-    {
-      "home": "TSG Hoffenheim",
-      "away": "FC Schalke 04",
-      "tipp": [
-        1,
-        0
-      ],
-      "datum": "2026-11-08T18:30:00Z"
-    },
-    {
-      "home": "Hamburger SV",
-      "away": "Borussia Mönchengladbach",
-      "tipp": [
-        1,
-        0
-      ],
-      "datum": "2026-11-06T19:30:00Z"
-    },
-    {
-      "home": "Borussia Dortmund",
-      "away": "SV 07 Elversberg",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "RB Leipzig",
-      "away": "FC Augsburg",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "1. FSV Mainz 05",
-      "away": "FC Bayern München",
-      "tipp": [
-        1,
-        3
-      ],
-      "datum": "2026-11-07T14:30:00Z"
-    },
-    {
-      "home": "SC Paderborn 07",
-      "away": "Eintracht Frankfurt",
+      "home": "Borussia Mönchengladbach",
+      "away": "Borussia Dortmund",
       "tipp": [
         0,
         1
       ],
-      "datum": "2026-11-07T14:30:00Z"
+      "datum": "2026-11-21T14:30:00Z"
     },
     {
-      "home": "VfB Stuttgart",
-      "away": "SV Werder Bremen",
-      "tipp": [
-        2,
-        1
-      ],
-      "datum": "2026-11-07T17:30:00Z"
-    },
-    {
-      "home": "1. FC Köln",
-      "away": "Bayer 04 Leverkusen",
+      "home": "SV 07 Elversberg",
+      "away": "SC Freiburg",
       "tipp": [
         1,
         2
       ],
-      "datum": "2026-11-08T14:30:00Z"
+      "datum": "2026-11-21T14:30:00Z"
     },
     {
-      "home": "SC Freiburg",
-      "away": "1. FC Union Berlin",
+      "home": "FC Schalke 04",
+      "away": "VfB Stuttgart",
+      "tipp": [
+        0,
+        1
+      ],
+      "datum": "2026-11-21T17:30:00Z"
+    },
+    {
+      "home": "FC Augsburg",
+      "away": "1. FSV Mainz 05",
       "tipp": [
         2,
         1
       ],
-      "datum": "2026-11-08T16:30:00Z"
+      "datum": "2026-11-22T14:30:00Z"
     },
     {
-      "home": "TSG Hoffenheim",
-      "away": "FC Schalke 04",
+      "home": "SV Werder Bremen",
+      "away": "Hamburger SV",
       "tipp": [
         1,
         0
       ],
-      "datum": "2026-11-08T18:30:00Z"
+      "datum": "2026-11-22T16:30:00Z"
     }
   ]
 }
