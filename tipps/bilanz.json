@@ -1252,6 +1252,87 @@
         0
       ],
       "datum": "2026-11-22T16:30:00Z"
+    },
+    {
+      "home": "FC Bayern München",
+      "away": "1. FC Köln",
+      "tipp": [
+        4,
+        0
+      ],
+      "datum": "2026-11-20T19:30:00Z"
+    },
+    {
+      "home": "Bayer 04 Leverkusen",
+      "away": "SC Paderborn 07",
+      "tipp": [
+        1,
+        0
+      ],
+      "datum": "2026-11-21T14:30:00Z"
+    },
+    {
+      "home": "Eintracht Frankfurt",
+      "away": "TSG Hoffenheim",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-11-21T14:30:00Z"
+    },
+    {
+      "home": "1. FC Union Berlin",
+      "away": "RB Leipzig",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-11-21T14:30:00Z"
+    },
+    {
+      "home": "Borussia Mönchengladbach",
+      "away": "Borussia Dortmund",
+      "tipp": [
+        0,
+        1
+      ],
+      "datum": "2026-11-21T14:30:00Z"
+    },
+    {
+      "home": "SV 07 Elversberg",
+      "away": "SC Freiburg",
+      "tipp": [
+        1,
+        2
+      ],
+      "datum": "2026-11-21T14:30:00Z"
+    },
+    {
+      "home": "FC Schalke 04",
+      "away": "VfB Stuttgart",
+      "tipp": [
+        0,
+        1
+      ],
+      "datum": "2026-11-21T17:30:00Z"
+    },
+    {
+      "home": "FC Augsburg",
+      "away": "1. FSV Mainz 05",
+      "tipp": [
+        2,
+        1
+      ],
+      "datum": "2026-11-22T14:30:00Z"
+    },
+    {
+      "home": "SV Werder Bremen",
+      "away": "Hamburger SV",
+      "tipp": [
+        1,
+        0
+      ],
+      "datum": "2026-11-22T16:30:00Z"
     }
   ]
 }
